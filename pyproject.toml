@@ -87,7 +87,3 @@ ignore = [
   "src/clarity_agent/llm/impl/azure_inference.py",
   "src/clarity_agent/llm/impl/github_copilot.py",
 ]
-
-[[tool.uv.index]]
-url = "https://packagefeedproxy.microsoft.io/pypi/simple"
-default = true
