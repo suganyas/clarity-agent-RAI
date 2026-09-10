@@ -1,0 +1,39 @@
+set shell := ["bash", "-uc"]
+
+root := justfile_directory()
+
+default:
+    @just --list
+
+boot:
+    @echo "boot: teams-live-transcript-cli"
+    @test -f "{{root}}/docs/project-rules/engineering-harness.md"
+    @test -f "{{root}}/justfile"
+    @echo "ready: local harness substrate present"
+
+check:
+    @cd "{{root}}" && if [ -f package.json ]; then npm run check; else test -f docs/project-rules/engineering-harness.md && test -f justfile && echo "check: scaffold-only"; fi
+
+interact:
+    @cd "{{root}}" && if [ -f package.json ]; then npm run cli -- --help; else echo "interact: CLI scaffold pending"; fi
+
+observe:
+    @cd "{{root}}" && mkdir -p .harness && printf '{"ok":true,"source":"just observe","timestamp":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > .harness/observe.json && cat .harness/observe.json
+
+test:
+    @cd "{{root}}" && if [ -f package.json ]; then npm test; else echo "test: package scaffold pending"; fi
+
+build:
+    @cd "{{root}}" && if [ -f package.json ]; then npm run build; else echo "build: package scaffold pending"; fi
+
+stream-transcript idle_timeout="10000":
+    @cd "{{root}}" && npm run --silent cli -- stream --idle-timeout-ms "{{idle_timeout}}"
+
+record-transcript out="" idle_timeout="10000":
+    @cd "{{root}}" && mkdir -p scratch && target="{{out}}" && if [ -z "$target" ]; then n=1; while [ -e "scratch/$(printf '%03d' "$n")-transcript.ndjson" ]; do n=$((n+1)); done; target="scratch/$(printf '%03d' "$n")-transcript.ndjson"; fi && npm run --silent cli -- stream --json --idle-timeout-ms "{{idle_timeout}}" --out "$target"
+
+record-transcript-watch out="" idle_timeout="10000":
+    @cd "{{root}}" && mkdir -p scratch && target="{{out}}" && if [ -z "$target" ]; then n=1; while [ -e "scratch/$(printf '%03d' "$n")-transcript.ndjson" ]; do n=$((n+1)); done; target="scratch/$(printf '%03d' "$n")-transcript.ndjson"; fi && npm run --silent cli -- stream --json --idle-timeout-ms "{{idle_timeout}}" --out "$target" --watch-events
+
+dump-raw-captions duration_ms="30000":
+    @cd "{{root}}" && mkdir -p scratch && npm run --silent dump-raw-captions -- --duration-ms "{{duration_ms}}" --out scratch/raw-captions.ndjson

@@ -1,0 +1,14 @@
+schemaVersion: 1.0.0
+providers:
+- provider: InventoryAsCode
+  version: 1.0.0
+  metadata:
+    isProduction: false
+    accountableOwners:
+      directOwners:
+      - pabouwer@microsoft.com
+      - jorkni@microsoft.com
+    routing:
+      defaultAreaPath:
+        org: aussiedevcrew
+        path: ANZ-Studio-Operations
