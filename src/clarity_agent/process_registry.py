@@ -89,6 +89,13 @@ PROCESS_METADATA: dict[str, ProcessMeta] = {
         tier="deep",
         category="validate",
     ),
+    "rai-impact-assessment": ProcessMeta(
+        name="rai-impact-assessment",
+        display_name="RAI Impact Assessment",
+        one_liner="Reviews a hackathon project plan for AI risks, harms, and practical mitigations.",
+        tier="deep",
+        category="validate",
+    ),
     "decision-guidance": ProcessMeta(
         name="decision-guidance",
         display_name="Decision Guidance",

@@ -95,7 +95,7 @@ Replace `/path/to/clarity-agent` with the absolute path to your clarity-agent cl
 
 ## Available Tools
 
-The MCP server exposes 9 tools, designed around four moments in a coding agent's workflow:
+The MCP server exposes 11 tools, designed around five moments in a coding agent's workflow:
 
 ### Before acting: check for conflicts
 
@@ -109,6 +109,13 @@ The MCP server exposes 9 tools, designed around four moments in a coding agent's
 |---|---|
 | `run_clarity` | Assess project state, get recommended next step with process guide inlined |
 | `get_packet_status` | Check document staleness after completing significant work |
+
+### Assess a hackathon AI project
+
+| Tool | Purpose |
+|---|---|
+| `start_rai_impact_assessment` | Load `project-plan.md` and start a conversational RAI impact assessment |
+| `record_rai_impact_assessment` | Save the user-confirmed assessment to the Clarity Protocol |
 
 ### Read, write, record
 
@@ -148,10 +155,19 @@ The AGENTS.md snippet (inserted by `clarity embed`) tells your coding agent when
 ```markdown
 Before making choices that would be expensive to reverse, call check_decision.
 When starting work or returning after a break, call run_clarity.
+For a hackathon RAI impact assessment, call start_rai_impact_assessment.
 After completing significant implementation, call get_packet_status.
 Record significant choices with record_decision. Add risks with record_failure.
 Generate shareable review packets with generate_packet.
 ```
+
+**RAI impact assessment in Copilot Chat:**
+
+1. Add `project-plan.md` to the project root. Describe the purpose, users, AI capabilities, data, and intended deployment.
+2. In Copilot Chat agent mode, ask: "Run a basic RAI impact assessment for this hackathon project using project-plan.md."
+3. Copilot calls `start_rai_impact_assessment`, summarizes the plan, and asks focused questions about affected people, harms, and safeguards.
+4. Review and correct the proposed risks and mitigations. Copilot calls `record_rai_impact_assessment` only after confirmation.
+5. Review the saved `.clarity-protocol/rai-impact-assessment.md` artifact.
 
 **New project:**
 1. Agent calls `run_clarity`, sees no protocol

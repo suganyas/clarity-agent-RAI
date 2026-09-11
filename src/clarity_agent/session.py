@@ -230,6 +230,17 @@ class ClaritySession:
             raise FileNotFoundError(f"Process guide not found: {process_path}")
         return render_guide(process_path.read_text())
 
+    def load_process_context(self, process_name: str) -> str:
+        """Load project-specific context required by a process."""
+        if process_name != "rai-impact-assessment":
+            return ""
+        from clarity_agent.ai_actions.rai_assessment import (
+            format_project_plan_context,
+            load_project_plan,
+        )
+
+        return format_project_plan_context(load_project_plan(self.project_dir))
+
     def load_thinker(self, thinker_name: str) -> str:
         """Load a thinker guide from the clarity agent directory."""
         thinker_path: Path = self.clarity_agent_dir / "thinkers" / f"{thinker_name}.md"
@@ -326,6 +337,12 @@ class ClaritySession:
         print(f"RUNNING {process_name.upper()} PROCESS")
         print(f"{'=' * 80}\n")
 
+        try:
+            process_context = self.load_process_context(process_name)
+        except ValueError as error:
+            print(f"Cannot start {process_name}: {error}.")
+            return
+
         # Resolve the model for this process.  May be a tier name ("deep")
         # or a concrete model string; the backend's resolve_model() handles both.
         model_for_process: str = self._resolve_model(process_name)
@@ -397,6 +414,25 @@ class ClaritySession:
                 return brainstorm_handler(tc)
 
             tool_handler = _combined
+        elif process_name == "rai-impact-assessment":
+            from clarity_agent.ai_actions.rai_assessment import (
+                create_rai_assessment_handler,
+                create_rai_assessment_tools,
+            )
+            from clarity_agent.protocol.initialize import init_protocol
+
+            if not self.protocol_dir.exists():
+                init_protocol(self.project_dir)
+            tools.extend(create_rai_assessment_tools())
+            assessment_handler = create_rai_assessment_handler(self.protocol_dir)
+            _feedback_handler = feedback_handler
+
+            def _combined_rai(tool_call: ToolUseBlock) -> str:
+                if tool_call.name == "send_feedback":
+                    return _feedback_handler(tool_call)
+                return assessment_handler(tool_call)
+
+            tool_handler = _combined_rai
 
         # Load process
         try:
@@ -421,6 +457,8 @@ class ClaritySession:
             _prepend_behaviors(process_specific, self.load_behaviors())
             or process_specific
         )
+        if process_context:
+            system_prompt += f"\n\n{process_context}"
 
         # Include packet status report for processes that benefit from it
         status_report: str | None = self.get_packet_status_report()
