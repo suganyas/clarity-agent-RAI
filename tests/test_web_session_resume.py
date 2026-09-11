@@ -55,6 +55,8 @@ class _StubBackend(ChatBackend):
         # ``_session_id`` mirrors the real backends' settable id.
         self._session_id: str | None = None
         self.conversation_history: list[dict[str, Any]] = []
+        self.last_system_prompt: str | None = None
+        self.last_tools: list[dict[str, Any]] = []
 
     @property
     def llm_session_id(self) -> str | None:
@@ -73,6 +75,8 @@ class _StubBackend(ChatBackend):
         tools: list[dict[str, Any]] | None = None,
         tool_handler: Any = None,
     ) -> str:
+        self.last_system_prompt = system_prompt
+        self.last_tools = tools or []
         return "ok"
 
     def _build_system_prompt(self, system_prompt: str | None = None) -> str:
@@ -138,6 +142,43 @@ class TestResumeFreshProject:
         # context — the user is genuinely starting from scratch.
         adapter = _start_adapter(project)
         assert adapter._transcript_context is None
+
+
+class TestRAIImpactAssessmentProcess:
+    def test_start_process_injects_plan_and_recorder_tool(
+        self, project: Path, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        # Arrange
+        (project / "project-plan.md").write_text(
+            "# Plan\n\nUse AI to route volunteer requests.", encoding="utf-8",
+        )
+        adapter = WebSessionAdapter(project, project, _StubLLMConfig())
+
+        async def run_process() -> str:
+            await adapter.start()
+            assert adapter._session is not None
+            monkeypatch.setattr(
+                adapter._session,
+                "load_process",
+                lambda name: f"# Process {name}",
+            )
+            monkeypatch.setattr(
+                adapter._session, "get_packet_status_report", lambda: None,
+            )
+            return await adapter.start_process("rai-impact-assessment")
+
+        # Act
+        result = asyncio.run(run_process())
+
+        # Assert
+        assert result == "ok"
+        assert adapter._backend is not None
+        assert isinstance(adapter._backend, _StubBackend)
+        assert adapter._backend.last_system_prompt is not None
+        assert "<project-plan-data>" in adapter._backend.last_system_prompt
+        assert "record_rai_impact_assessment" in {
+            tool["name"] for tool in adapter._backend.last_tools
+        }
 
     def test_first_chapter_created_by_start(self, project):
         # As a side-effect of ClaritySession's construction, chapter 1

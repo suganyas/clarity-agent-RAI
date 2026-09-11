@@ -25,6 +25,10 @@ from typing import Any
 _CLI_MAP: dict[str, tuple[str, str]] = {
     "record_failure": ("clarity_agent.ai_actions.brainstorm", "record-failure"),
     "record_suggestion": ("clarity_agent.ai_actions.suggestion", "record"),
+    "record_rai_impact_assessment": (
+        "clarity_agent.ai_actions.rai_assessment",
+        "record",
+    ),
     "recommend_deeper_analysis": ("clarity_agent.ai_actions.brainstorm", "recommend-deeper"),
     "read_thinker_guide": ("clarity_agent.ai_actions.brainstorm", "read-thinker-guide"),
 }

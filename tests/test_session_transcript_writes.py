@@ -51,6 +51,8 @@ class _StubBackend(ChatBackend):
         # fire it for each preconfigured ToolUseBlock.
         self.on_tool_use = None
         self.on_tool_call = None
+        self.last_system_prompt: str | None = None
+        self.last_tools: list[dict[str, Any]] = []
 
     def chat(
         self,
@@ -61,6 +63,8 @@ class _StubBackend(ChatBackend):
         tools: list[dict[str, Any]] | None = None,
         tool_handler: Any = None,
     ) -> str:
+        self.last_system_prompt = system_prompt
+        self.last_tools = tools or []
         # Fire the structured tool-call callback for each preconfigured
         # block — mirrors how the SDK backend fires it during streaming.
         for block in self._tool_calls:
@@ -194,6 +198,39 @@ class TestChatRecordsTurns:
 
 
 class TestProcessBoundary:
+    def test_rai_process_injects_plan_and_recorder_tool(
+        self, project, stub_llm_config, monkeypatch,
+    ):
+        # Arrange
+        (project / "project-plan.md").write_text(
+            "# Plan\n\nUse AI to route volunteer requests.", encoding="utf-8",
+        )
+        backend = _StubBackend(response="starting")
+        with ClaritySession(
+            project, project, backend, stub_llm_config,
+        ) as session:
+            monkeypatch.setattr(
+                session, "load_process", lambda name: f"# Process {name}",
+            )
+            monkeypatch.setattr(session, "load_behaviors", lambda: "")
+            monkeypatch.setattr(session, "get_packet_status_report", lambda: None)
+            monkeypatch.setattr(session, "record_document_state", lambda: None)
+            monkeypatch.setattr(
+                "clarity_agent.session._multiline_input",
+                lambda *_args, **_kw: (_ for _ in ()).throw(EOFError()),
+            )
+
+            # Act
+            session.run_custom_process("rai-impact-assessment")
+
+        # Assert
+        assert backend.last_system_prompt is not None
+        assert "<project-plan-data>" in backend.last_system_prompt
+        assert "Use AI to route volunteer requests" in backend.last_system_prompt
+        assert "record_rai_impact_assessment" in {
+            tool["name"] for tool in backend.last_tools
+        }
+
     def test_run_custom_process_writes_process_started(
         self, project, stub_llm_config, monkeypatch,
     ):

@@ -90,6 +90,35 @@ clarity embed /path/to/your-project
 
 This adds an `AGENTS.md` snippet and a `.clarity-protocol/` directory. These are plain files managed just like any other file in your repo — committed, reviewed in PRs, and diffed. From then on, your coding agent (Claude Code, Cursor, etc.) follows the process guides as part of its normal workflow.
 
+### Run an RAI impact assessment in Copilot Chat
+
+For an AI-enabled hackathon project, add a `project-plan.md` file to the
+project root. Describe the project's purpose, users, AI capabilities, data,
+and intended deployment. The assessment process is stored in the repository,
+so you do not need to configure or run an MCP server.
+
+Open Copilot Chat in Agent mode and ask:
+
+> Read `project-plan.md` and follow the assessment process in
+> `processes/rai-impact-assessment.md`. Do not use MCP tools. Conduct the
+> assessment conversationally, asking one question at a time. Show me the
+> proposed assessment for confirmation before writing it to
+> `.clarity-protocol/rai-impact-assessment.md`.
+
+Copilot reads the plan as untrusted project context, summarizes what it
+understood, and asks focused questions about affected people, potential harms,
+and practical mitigations. After you review and confirm the result, Copilot
+saves it to `.clarity-protocol/rai-impact-assessment.md`.
+
+If you have already run `clarity embed` and enabled the optional Clarity MCP
+server, you can use the shorter prompt:
+
+> Run a basic RAI impact assessment for this hackathon project using project-plan.md.
+
+This is a preliminary design aid for a prototype. It is not a compliance
+certification, legal opinion, or substitute for specialist review of
+high-impact uses.
+
 ## What It Does
 
 Clarity guides you through structured conversations, writing the results to the clarity protocol as it goes:
@@ -99,6 +128,8 @@ Clarity guides you through structured conversations, writing the results to the 
 **Solution exploration** — "Given that problem, how might we solve it?" Explores approaches, surfaces tradeoffs, and checks that the solution actually addresses the problem.
 
 **Failure analysis** — Multiple AI "thinkers" independently examine your system from different angles (security, human factors, adversarial, operational), then you work through the results together: grouping related failures, tracing causal chains, building management plans.
+
+**RAI impact assessment:** A short, project-plan-based review for hackathon teams that identifies affected people, credible harms, prioritized risks, release conditions, and proportionate mitigations.
 
 **Decision tracking** — Important choices get captured with criteria, options, and rationale. When upstream documents change, the agent knows which decisions might need revisiting.
 
@@ -113,6 +144,7 @@ A `.clarity-protocol/` directory:
 ├── summary.md              # Brief summary of what this project is
 ├── notes.md                # Principles and cross-cutting observations
 ├── observations.md         # Patterns and coverage notes from analysis
+├── rai-impact-assessment.md # Preliminary assessment for an AI-enabled hackathon project
 ├── goal/
 │   ├── problem.md          # What you're trying to achieve and why
 │   ├── stakeholders.md     # Who cares about the outcome

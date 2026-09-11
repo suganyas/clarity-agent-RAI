@@ -126,6 +126,8 @@ class TestRenderSnippet:
         out = render_snippet(layout)
 
         assert "run_clarity" in out
+        assert "start_rai_impact_assessment" in out
+        assert "record_rai_impact_assessment" in out
         assert "MCP responses include the relevant process guidance" in out
         assert "do not inspect the clarity-agent repository" in out
         assert "searching the repo for Clarity instructions" in out

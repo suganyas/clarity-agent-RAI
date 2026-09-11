@@ -264,14 +264,20 @@ class CopilotChatBackend(ChatBackend):
         project_dir: Path,
         clarity_agent_dir: Path,
         token: str | None = None,
+        available_tools: list[str] | None = None,
         idle_timeout_seconds: float | None = None,
         max_rpc_retries: int | None = None,
         transcript: Transcript | None = None,
     ) -> None:
+        if CopilotClient is None:
+            raise RuntimeError(
+                "GitHub Copilot SDK is not installed. Run 'uv sync --all-extras'."
+            )
         super().__init__(transcript=transcript)
         self.project_dir = project_dir
         self.clarity_agent_dir = clarity_agent_dir
         self._token = token
+        self._available_tools = available_tools
         # Per-turn idle timeout: the peer must emit *some* SDK event
         # within this many seconds, or we abort the turn.  Resets on
         # every event — long-but-streaming turns are fine, only truly
@@ -451,6 +457,7 @@ class CopilotChatBackend(ChatBackend):
             system_message=sys_msg,
             streaming=True,
             working_directory=str(self.project_dir),
+            available_tools=self._available_tools,
         )
 
     async def _send_and_wait(self, message: str) -> str:

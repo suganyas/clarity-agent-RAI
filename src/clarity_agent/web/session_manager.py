@@ -811,6 +811,7 @@ class WebSessionAdapter:
         self._partial_text.clear()
 
         process_content = self._session.load_process(process_name)
+        process_context = self._session.load_process_context(process_name)
         prev_process = self.current_process
         self.current_process = process_name
 
@@ -865,6 +866,27 @@ class WebSessionAdapter:
                 return brainstorm_handler(tc)
 
             self._tool_handler = _combined_handler
+        elif process_name == "rai-impact-assessment":
+            from clarity_agent.ai_actions.rai_assessment import (
+                create_rai_assessment_handler,
+                create_rai_assessment_tools,
+            )
+            from clarity_agent.protocol.initialize import init_protocol
+
+            protocol_dir = _protocol_dir(self.project_dir)
+            if not protocol_dir.exists():
+                protocol_dir = init_protocol(self.project_dir)
+            assert self._tools is not None
+            self._tools.extend(create_rai_assessment_tools())
+            assessment_handler = create_rai_assessment_handler(protocol_dir)
+            feedback_handler = self._feedback_handler
+
+            def _combined_rai_handler(tool_call: Any) -> str:
+                if tool_call.name == "send_feedback":
+                    return feedback_handler(tool_call)
+                return assessment_handler(tool_call)
+
+            self._tool_handler = _combined_rai_handler
 
         behaviors: str = self._session.load_behaviors()
         behaviors_block: str = f"{behaviors}\n\n" if behaviors else ""
@@ -879,6 +901,8 @@ class WebSessionAdapter:
             f"Process guides: {self.clarity_agent_dir / 'processes'}/\n"
             f"Thinker guides: {self.clarity_agent_dir / 'thinkers'}/"
         )
+        if process_context:
+            system_prompt += f"\n\n{process_context}"
 
         status_report = self._session.get_packet_status_report()
         if status_report:

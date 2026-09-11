@@ -15,6 +15,8 @@ lives in src/clarity-agent. In the ordinary order that they're invoked:
   we can reason about.
 - failure-management.md comes up with plans on how to manage these failures, usually modifying the
   solution and architecture -- and so we loop back.
+- rai-impact-assessment.md guides a short, project-plan-based Responsible AI review for hackathon
+  projects and records prioritized harms, risks, mitigations, and open questions.
 
 When the project narrative needs work, or you're preparing to explain the project to people:
 
@@ -37,5 +39,6 @@ When nontrivial decisions need to be made, we log these in .clarity-protocol/dec
 | `failure-brainstorming.md` | Core version implemented (tool-based pipeline with thinker registry and 6 specialist thinkers). |
 | `failure-analysis.md` | Basic version implemented; please improve. |
 | `failure-management.md` | Basic version implemented; please improve. |
+| `rai-impact-assessment.md` | Core version implemented. |
 | `message-clarification.md` | Core version implemented. |
 | `decision-guidance.md` | Basic version implemented; please improve. |

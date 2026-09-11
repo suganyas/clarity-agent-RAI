@@ -61,6 +61,11 @@ mcp = FastMCP(
         "after a break. Use MCP tool responses as the authority for "
         "process guidance; do not inspect the clarity-agent source "
         "repository or run Clarity CLI commands to operate the protocol. "
+        "When the user asks for a Responsible AI or RAI impact assessment "
+        "of a hackathon project, call start_rai_impact_assessment and conduct "
+        "the returned process in chat. After the user confirms the summary, "
+        "risks, mitigations, and open questions, call "
+        "record_rai_impact_assessment. "
         "After completing significant implementation, call "
         "get_packet_status to check if protocol documents need updating. "
         "Call generate_packet when the user needs a shareable review packet."
@@ -113,7 +118,7 @@ def _resolve_agent_dir() -> Path:
 
 
 # ===================================================================
-# MCP TOOLS (9 tools — the coding agent surface)
+# MCP TOOLS (11 tools — the coding agent surface)
 # ===================================================================
 
 
@@ -200,6 +205,94 @@ def run_clarity(project_dir: str | None = None) -> str:
                 )
 
     return status_text
+
+
+@mcp.tool()
+def start_rai_impact_assessment(project_dir: str | None = None) -> str:
+    """Start a basic Responsible AI impact assessment from project-plan.md.
+
+    Call this when the user asks to assess an AI-enabled hackathon project for
+    potential risks, harms, and mitigations. The project root must contain a
+    non-empty UTF-8 project-plan.md no larger than 100 KB. Follow the returned
+    process guide conversationally, asking one question at a time.
+
+    Args:
+        project_dir: Project directory (default: CLARITY_PROJECT_DIR or cwd).
+    """
+    from clarity_agent.ai_actions.rai_assessment import (
+        ProjectPlanError,
+        format_project_plan_context,
+        load_project_plan,
+    )
+
+    project_path = _resolve_project_dir(project_dir)
+    try:
+        plan_content = load_project_plan(project_path)
+    except ProjectPlanError as error:
+        return f"Error: {error}. Then call this tool again."
+
+    agent_dir = _resolve_agent_dir()
+    guide_path = agent_dir / "processes" / "rai-impact-assessment.md"
+    if not guide_path.is_file():
+        return "Error: the RAI impact assessment process guide is unavailable."
+    guide = render_guide(guide_path.read_text(encoding="utf-8"))
+
+    return (
+        "# RAI Impact Assessment\n\n"
+        "Conduct this process with the user in Copilot Chat. Begin with the "
+        "project summary and one specific potential impact, then ask one "
+        "question at a time. Do not answer the questions on the user's behalf.\n\n"
+        f"{PROCESS_GUIDE_USAGE_NOTE}\n\n"
+        "## Process Guide\n\n"
+        f"{guide}\n\n"
+        f"{format_project_plan_context(plan_content)}"
+    )
+
+
+@mcp.tool()
+def record_rai_impact_assessment(
+    project_summary: str,
+    intended_uses: list[str],
+    prohibited_uses: list[str],
+    affected_people: list[str],
+    risks: list[dict[str, str]],
+    release_conditions: list[str],
+    monitoring_and_response: list[str],
+    open_questions: list[str],
+    project_dir: str | None = None,
+) -> str:
+    """Save a user-confirmed preliminary RAI impact assessment.
+
+    Call this only after conducting the assessment conversation and showing
+    the user the project summary, prioritized risks, mitigations, and open
+    questions for confirmation. Writes the fixed protocol artifact
+    rai-impact-assessment.md.
+    """
+    from clarity_agent.ai_actions.rai_assessment import (
+        record_rai_impact_assessment as _record,
+    )
+    from clarity_agent.protocol.initialize import init_protocol
+
+    project_path = _resolve_project_dir(project_dir)
+    proto_dir = _resolve_protocol_dir(project_dir)
+    if not proto_dir.exists():
+        proto_dir = init_protocol(project_path)
+
+    try:
+        _, message = _record(
+            proto_dir,
+            project_summary=project_summary,
+            intended_uses=intended_uses,
+            prohibited_uses=prohibited_uses,
+            affected_people=affected_people,
+            risks=risks,
+            release_conditions=release_conditions,
+            monitoring_and_response=monitoring_and_response,
+            open_questions=open_questions,
+        )
+    except ValueError as error:
+        return f"Error: invalid RAI impact assessment: {error}"
+    return message
 
 
 @mcp.tool()
